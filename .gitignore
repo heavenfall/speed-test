@@ -41,3 +41,4 @@
 **/run.stderr
 **/run.stdout
 index_data/**
+/auto_build/

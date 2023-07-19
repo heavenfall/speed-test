@@ -20,9 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <algorithm>
+#include <map>
+#include <asb/search/Search.hpp>
+#include <asb/search/SearchGrid.hpp>
 #include "Entry.h"
-#include "Astar.h"
 
+struct BucketAs
+{
+	asb::search::SearchGrid grid;
+	asb::search::Search search;
+};
+
+std::unique_ptr<BucketAs> g_bucketAs;
 
 /**
  * User code used during preprocessing of a map.  Can be left blank if no pre-processing is required.
@@ -59,8 +69,10 @@ void PreprocessMap(const std::vector<bool> &bits, int width, int height, const s
  * @returns Pointer to data-structure used for search.  Memory should be stored on heap, not stack.
  */
 void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, const std::string &filename) {
-  Astar* astar = new Astar(&bits, width, height);
-  return astar;
+	g_bucketAs = std::make_unique<BucketAs>();
+	g_bucketAs->grid.setup(bits, width, height);
+	g_bucketAs->search.setup(g_bucketAs->grid);
+	return g_bucketAs.get();
 }
 
 /**
@@ -83,9 +95,16 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
  *          if `false` then `GetPath` will be called again until search is complete.
  */
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-  Astar* astar = (Astar*)(data);
-  astar->get_path(s, g, path);
-  return true;
+	using pt = asb::geo::Point;
+	BucketAs& bucketAs = *static_cast<BucketAs*>(data);
+	bucketAs.search.search(pt(s.x, s.y), pt(g.x, g.y));
+	auto& res = bucketAs.search.get_path();
+	path.resize(res.size());
+	for (int i = 0, ie = static_cast<int>(path.size()); i < ie; ++i) {
+		path[i].x = res[i].x;
+		path[i].y = res[i].y;
+	}
+	return true;
 }
 
 /**
@@ -93,4 +112,4 @@ bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
  * 
  * @returns the name of the algorithm
  */
-std::string GetName() { return "example-A*"; }
+std::string GetName() { return "Bucket-As"; }
