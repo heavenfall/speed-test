@@ -55,6 +55,7 @@ public:
 
 	bool empty() const noexcept { return m_queue.empty(); }
 	QueueValue top() const noexcept { assert(!m_queue.empty()); return m_queue.front(); }
+	void init_top() noexcept { }
 
 	void heapify()
 	{
@@ -67,13 +68,11 @@ public:
 		std::push_heap(m_queue.begin(), m_queue.end());
 	}
 
-	QueueValue pop()
+	void pop()
 	{
 		assert(!m_queue.empty());
-		QueueValue t = m_queue.front();
 		std::pop_heap(m_queue.begin(), m_queue.end());
 		m_queue.pop_back();
-		return t;
 	}
 
 	void clear()
@@ -99,7 +98,7 @@ private:
 	static constexpr size_t slab_size = 512 * 1024 + 64;
 	SearchId m_sid;
 	std::pmr::unsynchronized_pool_resource m_bucketsRes;
-	inx::SliceFactory<NodeId, slab_size> m_slices;
+	inx::SliceFactory<NodeId, slab_size, 4> m_slices;
 	std::vector<QueueValue> m_queue;
 	std::pmr::unordered_map<dist_type, NodeBucket> m_buckets;
 };

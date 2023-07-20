@@ -4,7 +4,11 @@
 #include "fwd.hpp"
 #include "Types.hpp"
 #include "Node.hpp"
+#ifdef ABS_ENABLE_REDBLACK_TREE
+#include "RedBlackQueue.hpp"
+#else
 #include "BucketQueue.hpp"
+#endif
 #include "BucketExpander.hpp"
 #include "SearchGrid.hpp"
 
@@ -21,8 +25,8 @@ public:
 
 	env::Grid* get_grid() noexcept { return m_grid; }
 	const env::Grid* get_grid() const noexcept { return m_grid; }
-	BucketQueue& get_queue() noexcept { return m_queue; }
-	const BucketQueue& get_queue() const noexcept { return m_queue; }
+	auto& get_queue() noexcept { return m_queue; }
+	const auto& get_queue() const noexcept { return m_queue; }
 	BucketExpander& get_expansion() noexcept { return m_expander; }
 	const BucketExpander& get_expansion() const noexcept { return m_expander; }
 
@@ -35,7 +39,11 @@ public:
 protected:
 	SearchId m_sid;
 	SearchGrid* m_grid;
+#ifdef ABS_ENABLE_REDBLACK_TREE
+	RedBlackQueue m_queue;
+#else
 	BucketQueue m_queue;
+#endif
 	BucketExpander m_expander;
 	std::vector<geo::Point> m_path;
 };

@@ -13,6 +13,8 @@ namespace asb::search {
 class BucketExpander
 {
 public:
+	static constexpr uint16_t BUCKET_ORDER = 0b101'010'100'011'001u;
+	static constexpr uint16_t BALANCED_ORDER = 0b001'101'011'010'100u;
 	void setup(SearchGrid& grid);
 	void setupSearch(SearchId sid, NodeDesc target);
 

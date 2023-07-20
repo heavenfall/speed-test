@@ -196,6 +196,87 @@ protected:
 	std::vector<void*> m_reuse;
 };
 
+template <typename T, size_t SlabN>
+class ReclaimFactory
+{
+public:
+	using self = ReclaimFactory<T, SlabN>;
+
+	struct Slab
+	{
+		std::array<std::byte, sizeof(T) * SlabN> data;
+		std::unique_ptr<Slab> next;
+		T* castArray() noexcept { return reinterpret_cast<T*>(data.data()); }
+	};
+
+	ReclaimFactory()
+	{
+		m_first = std::make_unique<Slab>();
+		m_current = m_first.get();
+		m_currentAt = m_current->castArray();
+		m_currentEnd = m_currentAt + SlabN;
+		m_reuse.reserve(64);
+	}
+
+	[[nodiscard]] void* allocate()
+	{
+		if (m_reuse.empty()) {
+			if (m_currentAt == m_currentEnd) [[unlikely]] {
+				if (m_current->next == nullptr) {
+					m_current->next = std::make_unique<Slab>();
+				}
+				m_current = m_current->next.get();
+				m_currentAt = m_current->castArray();
+				m_currentEnd = m_currentAt + SlabN;
+			}
+			return m_currentAt++;
+		} else {
+			void* m = m_reuse.back();
+			m_reuse.pop_back();
+			return m;
+		}
+	}
+	void deallocate(void* data)
+	{
+		m_reuse.push_back(data);
+	}
+
+	template <typename... Args>
+	[[nodiscard]] T* construct(Args&&... args)
+	{
+		T* data = std::construct_at<T>(static_cast<T*>(allocate()), std::forward<Args>(args)...);
+		return data;
+	}
+	void destruct(T* data)
+	{
+		std::destroy_at(data);
+		deallocate(data);
+	}
+
+	void reset() noexcept
+	{
+		m_current = m_first.get();
+		m_currentAt = m_current->castArray();
+		m_currentEnd = m_currentAt + SlabN;
+		m_reuse.clear();
+	}
+	void release() noexcept
+	{
+		m_current = m_first.get();
+		m_currentAt = m_current->castArray();
+		m_currentEnd = m_currentAt + SlabN;
+		m_reuse.clear();
+		m_first->next.release();
+	}
+
+protected:
+	std::unique_ptr<Slab> m_first;
+	Slab* m_current;
+	T* m_currentAt;
+	T* m_currentEnd;
+	std::vector<void*> m_reuse;
+};
+
 } // namespace inx
 
 #endif // GMLIB_FACTORY_HPP_INCLUDED

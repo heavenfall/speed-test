@@ -1,36 +1,38 @@
-#include "BucketQueue.hpp"
+#include "RedBlackQueue.hpp"
+#include "BucketExpander.hpp"
 #include <memory>
 #include <algorithm>
 
 namespace asb::search {
 
-BucketQueue::BucketQueue() : m_sid{0}, m_buckets(4096, &m_bucketsRes)
-{
-	m_buckets.max_load_factor(0.75);
-}
+RedBlackQueue::RedBlackQueue() : m_sid{0}, m_front(nullptr)
+{ }
 
-void BucketQueue::setup()
-{
-	m_queue.reserve(1024);
-}
+void RedBlackQueue::setup()
+{ }
 
-void BucketQueue::setupSearch(SearchId sid)
+void RedBlackQueue::setupSearch(SearchId sid)
 {
 	m_sid = sid;
-	m_queue.clear();
+	m_tree.clear();
 	m_slices.reset();
+	m_bucketFactory.reset();
+	m_front = nullptr;
 }
 
-void BucketQueue::mergeBucket(dist_type fvalue, BucketPush& bucketPush)
+void RedBlackQueue::mergeBucket(dist_type fvalue, BucketPush& bucketPush)
 {
-	NodeBucket& bucket = getBucketByF(fvalue);
+	auto bucketIt = m_tree.partition_point([fvalue](const RedBlackBucket& bucket) noexcept { return bucket.fvalue < fvalue; });
+	if (bucketIt.node() == nullptr || bucketIt->fvalue != fvalue) {
+		// node does not exist, create it
+		bucketIt = m_tree.insert(bucketIt, *m_bucketFactory.construct());
+		bucketIt->size = 0;
+		bucketIt->fvalue = fvalue;
+	}
+	assert(bucketIt.node() != nullptr && bucketIt->fvalue == fvalue);
+	RedBlackBucket& bucket = *bucketIt;
 	uint32_t size_required = bucketPush.nodes.size();
 	uint32_t new_size;
-	if (bucket.sid.id != m_sid.id) {
-		bucket.sid = m_sid;
-		bucket.size = 0;
-		push(fvalue, bucket);
-	}
 	new_size = bucket.size + size_required;
 	if (new_size <= NodeBucket::static_size) { // copy data into static buffer
 		std::uninitialized_copy_n(bucketPush.nodes.data(), size_required, bucket.static_data.data() + bucket.size);
@@ -55,24 +57,26 @@ void BucketQueue::mergeBucket(dist_type fvalue, BucketPush& bucketPush)
 	bucketPush.nodes.clear();
 	bucket.size = new_size;
 }
-void BucketQueue::mergeBucketArray(dist_type fvalue, BucketPushArray& bucketPush)
+void RedBlackQueue::mergeBucketArray(dist_type fvalue, BucketPushArray& bucketPush)
 {
 	assert(bucketPush[0].nodes.empty());
 
-	for (int i = 1; i < std::tuple_size_v<BucketPushArray>; ++i) {
-		auto& bucket = bucketPush[i];
+	for (uint16_t i = BucketExpander::BALANCED_ORDER; i != 0; i >>= 3) {
+		auto& bucket = bucketPush[i & 0b111];
 		if (!bucket.nodes.empty())
 			mergeBucket(fvalue + bucket.relative_f, bucket);
 	}
 }
 
-void BucketQueue::free(NodeBucket& node)
+void RedBlackQueue::free(RedBlackBucket& node)
 {
+	assert(m_front == &node);
 	if (node.size > NodeBucket::static_size) {
 		node.data.clear(m_slices);
 	}
-	assert(&node == top().bucket);
-	pop();
+	m_front = static_cast<RedBlackBucket*>(node.find_inorder_id(0));
+	m_tree.erase(node);
+	m_bucketFactory.destruct(&node);
 }
 
 } // namespace asb::search

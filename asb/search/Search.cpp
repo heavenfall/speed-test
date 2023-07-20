@@ -33,17 +33,18 @@ void Search::search(geo::Point s, geo::Point t)
 	foundTarget = m_expander.expandStartNode(fvalue, start);
 	if (!foundTarget) {
 		auto& bucketLists = m_expander.getBucketLists();
-		do
+		m_queue.mergeBucketArray(fvalue, bucketLists);
+		m_queue.init_top();
+		while (!m_queue.empty())
 		{
-			m_queue.mergeBucketArray(fvalue, bucketLists);
-			if (m_queue.empty())
-				break; // no solution found
-			auto element = m_queue.pop();
+			auto element = m_queue.top();
 			fvalue = element.f;
 			foundTarget = m_expander.expandBucket(fvalue, element.bucket->getData(), element.bucket->size);
+			if (foundTarget)
+				break;
+			m_queue.mergeBucketArray(fvalue, bucketLists);
 			m_queue.free(*element.bucket);
 		}
-		while (!foundTarget);
 	}
 	if (foundTarget) {
 		// generate path

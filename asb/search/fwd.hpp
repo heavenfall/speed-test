@@ -4,6 +4,8 @@
 #include <inx/inx.hpp>
 #include <geo/Point.hpp>
 
+// #define ABS_ENABLE_REDBLACK_TREE
+
 namespace asb::search {
 
 class BasicQueue;
