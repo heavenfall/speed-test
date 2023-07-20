@@ -41,6 +41,7 @@ void Search::search(geo::Point s, geo::Point t)
 			auto element = m_queue.pop();
 			fvalue = element.f;
 			foundTarget = m_expander.expandBucket(fvalue, element.bucket->getData(), element.bucket->size);
+			m_queue.free(*element.bucket);
 		}
 		while (!foundTarget);
 	}

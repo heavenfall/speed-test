@@ -80,6 +80,7 @@ public:
 	{
 		m_queue.clear();
 	}
+	void free(NodeBucket& node);
 
 	NodeBucket& getBucketByF(dist_type f)
 	{

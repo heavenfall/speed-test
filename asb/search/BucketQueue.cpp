@@ -66,4 +66,11 @@ void BucketQueue::mergeBucketArray(dist_type fvalue, BucketPushArray& bucketPush
 	}
 }
 
+void BucketQueue::free(NodeBucket& node)
+{
+	if (node.size > NodeBucket::static_size) {
+		node.data.clear(m_slices);
+	}
+}
+
 } // namespace asb::search
