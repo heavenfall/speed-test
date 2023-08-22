@@ -9,6 +9,6 @@ build() (
 )
 
 mkdir -p ${idx_dir} ${build_dir}
-build "$@" -march=native -DABS_ENABLE_REDBLACK_TREE
+build "$@" -march=native
 # build exec
 cp "${build_dir}/run" .

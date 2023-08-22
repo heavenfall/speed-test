@@ -4,7 +4,7 @@
 #include "fwd.hpp"
 #include "Types.hpp"
 #include "Node.hpp"
-#ifdef ABS_ENABLE_REDBLACK_TREE
+#ifdef ASB_ENABLE_REDBLACK_TREE
 #include "RedBlackQueue.hpp"
 #else
 #include "BucketQueue.hpp"
@@ -39,7 +39,7 @@ public:
 protected:
 	SearchId m_sid;
 	SearchGrid* m_grid;
-#ifdef ABS_ENABLE_REDBLACK_TREE
+#ifdef ASB_ENABLE_REDBLACK_TREE
 	RedBlackQueue m_queue;
 #else
 	BucketQueue m_queue;
