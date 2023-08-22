@@ -5,7 +5,7 @@
 #include <geo/Point.hpp>
 
 // enables/disables redblack tree, rb-tree is much faster
-#ifndef DISABLE_ASB_ENABLE_REDBLACK_TREE
+#ifndef ASB_DISABLE_REDBLACK_TREE
 #if !defined(ASB_ENABLE_REDBLACK_TREE)
 #define ASB_ENABLE_REDBLACK_TREE
 #endif
