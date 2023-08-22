@@ -39,7 +39,7 @@ void Search::search(geo::Point s, geo::Point t)
 		{
 			auto element = m_queue.top();
 			fvalue = element.f;
-			foundTarget = m_expander.expandBucket(fvalue, element.bucket->getData(), element.bucket->size);
+			foundTarget = m_expander.expandNode(fvalue, element.bucket->getData(), element.bucket->size);
 			if (foundTarget)
 				break;
 			m_queue.mergeBucketArray(fvalue, bucketLists);

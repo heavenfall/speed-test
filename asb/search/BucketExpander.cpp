@@ -7,7 +7,9 @@ void BucketExpander::setup(SearchGrid& grid)
 	for (auto& x : m_bucketLists) {
 		x.nodes.reserve(64);
 	}
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	m_bucketLoop.nodes.reserve(64);
+#endif
 	m_bucketLists[0].relative_f = 0; //                                 0 ( 0,  0) 00000000000000000000000000000000000
 	m_bucketLists[1].relative_f = 2 * dist_1 - dist_r2;     // 5857864376 ( 2, -1) 00101011101001001111110101010111000
 	assert(m_bucketLists[1].relative_f == 5857864376ull);
@@ -39,7 +41,7 @@ bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 	snode.sid = m_sid;
 	snode.g = 0;
 	assert(fvalue == Node::octile(snode.p - m_target.p));
-	snode.f = fvalue;
+	snode.close();
 	snode.predNode = s;
 	// copy to stack
 	struct Expand {
@@ -65,7 +67,7 @@ bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 			store_pushes[f_hash(node.f - fvalue)].nodes.push_back(NodeId{(succ_nodeid.id << 3) | static_cast<uint8_t>(d)});
 			return succ_nodeid.id == target.id;
 		}
-	} expand{m_sid, snode.f, m_bucketLists.data(), m_grid->getNodes().data(), m_target, static_cast<int32_t>(m_grid->getWidth()), s};
+	} expand{m_sid, fvalue, m_bucketLists.data(), m_grid->getNodes().data(), m_target, static_cast<int32_t>(m_grid->getWidth()), s};
 
 	// setup node for expansion
 	uint8_t node3x3;
@@ -112,18 +114,38 @@ bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 
 	// expand rel 0 bucket if non-empty
 	if (!m_bucketLists[0].nodes.empty()) {
+#ifndef ASB_ENABLE_EXPANDER_DFS
 		m_bucketLoop.nodes.clear();
 		std::swap(m_bucketLists[0].nodes, m_bucketLoop.nodes);
-		return expandBucket(snode.f, m_bucketLoop.nodes.data(), m_bucketLoop.nodes.size());
+		return expandBucket(fvalue, m_bucketLoop.nodes.data(), m_bucketLoop.nodes.size());
+#else
+		return expandBucket(fvalue);
+#endif
 	}
 
 	return false;
 }
 
-bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int size)
+bool BucketExpander::expandNode(dist_type fvalue, const NodeId* bucket, int size)
 {
+#ifndef ASB_ENABLE_EXPANDER_DFS
+	return expandBucket(fvalue, bucket, size);
+#else
+	m_bucketLists[0].nodes.assign(bucket, bucket + size);
+	return expandBucket(fvalue);
+#endif
+}
+
+#ifndef ASB_ENABLE_EXPANDER_DFS
+bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int size)
+#else
+bool BucketExpander::expandBucket(dist_type fvalue)
+#endif
+{
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	assert(bucket != 0);
 	assert(size > 0);
+#endif
 
 	// based off of Dir index
 	// 0b76543210
@@ -173,7 +195,13 @@ bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int si
 	};
 	auto& table = m_grid->getTable();
 
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	const NodeId* bucket_at = bucket + (size-1);
+#else
+	BucketPush& bucket_list = expand.store_pushes[0];
+#endif
+
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	while (true) {
 		// a do-while
 		// will loop over original bucket
@@ -181,6 +209,14 @@ bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int si
 		while (true) {
 			// setup node for expansion
 			expand.nodeid = *bucket_at;
+#else
+	do {
+			assert(!bucket_list.nodes.empty());
+		// a do-while !bucket_list.empty()
+			// setup node for expansion
+			expand.nodeid = bucket_list.nodes.back();
+			bucket_list.nodes.pop_back();
+#endif
 			assert((expand.nodeid.id >> 3) < m_grid->getNodes().size());
 			Node& expnode = expand.grid[expand.nodeid.id >> 3];
 #ifndef NDEBUG
@@ -236,6 +272,7 @@ bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int si
 					return true;
 			}
 
+#ifndef ASB_ENABLE_EXPANDER_DFS
 			// end condition
 			if (bucket_at == bucket)
 				break;
@@ -253,6 +290,9 @@ bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int si
 		size = m_bucketLoop.nodes.size();
 #endif
 	}
+#else
+	} while (!bucket_list.nodes.empty());
+#endif
 
 	return false;
 }

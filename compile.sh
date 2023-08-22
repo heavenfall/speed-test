@@ -9,6 +9,6 @@ build() (
 )
 
 mkdir -p ${idx_dir} ${build_dir}
-build "$@" -march=native
+build "$@" -march=native -DASB_ENABLE_EXPANDER_DFS
 # build exec
 cp "${build_dir}/run" .

@@ -24,9 +24,14 @@ public:
 	}
 
 	bool expandStartNode(dist_type fvalue, NodeId s);
+	bool expandNode(dist_type fvalue, const NodeId* bucket, int size);
 	// will read of memory bucket[0..size-1], expanding all nodes inside
 	// returns true if target was discovered (ends when finding target)
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	bool expandBucket(dist_type fvalue, const NodeId* bucket, int size);
+#else
+	bool expandBucket(dist_type fvalue);
+#endif
 
 	// special function that converts f into m_bucketLists id
 	constexpr static int f_hash(dist_type f) noexcept
@@ -49,7 +54,9 @@ public:
 
 protected:
 	BucketPushArray m_bucketLists;
+#ifndef ASB_ENABLE_EXPANDER_DFS
 	BucketPush m_bucketLoop;
+#endif
 	SearchGrid* m_grid;
 	SearchId m_sid;
 	NodeDesc m_target;
