@@ -4,6 +4,7 @@
 #include "fwd.hpp"
 #include <geo/Point.hpp>
 #include "Types.hpp"
+#include <bit>
 
 namespace asb::search {
 
@@ -43,16 +44,16 @@ struct Node
 
 	static constexpr dist_type octile(geo::Point uv) noexcept
 	{
-#if 0
+#if 1
 		union {
 			uint32_t word;
 			struct {
 				int16_t x, y;
 			} p;
-		} x;
-		x.p.x = std::abs(uv.x); x.p.y = std::abs(uv.y);
-		x.word = x.p.x > x.p.y ? std::rotl(x.word, 16) : x.word;
-		return x.p.x * dist_r2 + (x.p.y - x.p.x) * dist_1;
+		} q;
+		q.p.x = std::abs(uv.x); q.p.y = std::abs(uv.y);
+		q.word = q.p.x > q.p.y ? std::rotl(q.word, 16) : q.word;
+		return q.p.x * dist_r2 + (q.p.y - q.p.x) * dist_1;
 #else
 		uv.x = std::abs(uv.x); uv.y = std::abs(uv.y);
 		if (uv.x > uv.y) std::swap(uv.x, uv.y);
