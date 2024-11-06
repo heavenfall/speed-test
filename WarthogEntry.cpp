@@ -22,14 +22,15 @@ SOFTWARE.
 
 #include <algorithm>
 #include <map>
-#include <search/Search.hpp>
-#include <search/SearchGrid.hpp>
+#include <search/WarthogSearch.hpp>
+#include <search/WarthogSearchGrid.hpp>
 #include "Entry.h"
 
 struct BucketAs
 {
-	asb::search::SearchGrid grid;
-	asb::search::Search search;
+	BucketAs(int width, int height) : grid(width, height) { }
+	asb::search::WarthogSearchGrid grid;
+	asb::search::WarthogSearch search;
 };
 
 std::unique_ptr<BucketAs> g_bucketAs;
@@ -69,7 +70,7 @@ void PreprocessMap(const std::vector<bool> &bits, int width, int height, const s
  * @returns Pointer to data-structure used for search.  Memory should be stored on heap, not stack.
  */
 void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, const std::string &filename) {
-	g_bucketAs = std::make_unique<BucketAs>();
+	g_bucketAs = std::make_unique<BucketAs>(width, height);
 	g_bucketAs->grid.setup(bits, width, height);
 	g_bucketAs->search.setup(g_bucketAs->grid);
 	return g_bucketAs.get();
@@ -112,4 +113,4 @@ bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
  * 
  * @returns the name of the algorithm
  */
-std::string GetName() { return "Bucket-As"; }
+std::string GetName() { return "Warthog-Bucket-As"; }

@@ -22,25 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef ASB_SEARCH_BUCKETEXPANDER_HPP
-#define ASB_SEARCH_BUCKETEXPANDER_HPP
+#ifndef ASB_SEARCH_WARTHOGBUCKETEXPANDER_HPP
+#define ASB_SEARCH_WARTHOGBUCKETEXPANDER_HPP
 
 #include "fwd.hpp"
-#include "Node.hpp"
-#include "SearchGrid.hpp"
+#include "BucketExpander.hpp"
 #include "WarthogSearchGrid.hpp"
-#include <vector>
-#include <array>
-#include <bit>
 
 namespace asb::search {
 
-class BucketExpander
+class WarthogBucketExpander : public BucketExpander
 {
 public:
 	static constexpr uint16_t BUCKET_ORDER = 0b101'010'100'011'001u;
 	static constexpr uint16_t BALANCED_ORDER = 0b001'101'011'010'100u;
-	void setup(SearchGrid& grid);
+	void setup(WarthogSearchGrid& grid);
 	void setupSearch(SearchId sid, NodeDesc target);
 
 	BucketPush& getBucket(dist_type rel_f) noexcept
@@ -58,38 +54,14 @@ public:
 	bool expandBucket(dist_type fvalue);
 #endif
 
-	// special function that converts f into m_bucketLists id
-	constexpr static int f_hash(dist_type f) noexcept
+	static uint32_t get3x3(WarthogSearchGrid::table& T, uint32_t p)
 	{
-		assert(f == 0 || f == 5857864376 || f == 20000000000 || f == 8284271248 || f == 14142135624 || f == 28284271248);
-		/*
-		14286848
-		0 0b0 0
-		5857864376 0b100000000000000000 1
-		20000000000 0b100100000000000000000 2
-		8284271248 0b110000100000000000000000 3
-		14142135624 0b110010100000000000000000 4
-		28284271248 0b110110100000000000000000 5
-		*/
-		return std::popcount(static_cast<dist_type>(f) & static_cast<dist_type>(14286848ull));
+		uint8_t r[3];
+		T.get_neighbours(p, r);
+		return uint32_t{r[0]} | (uint32_t{r[1]} << 3) | (uint32_t{r[2]} << 6);
 	}
-
-	BucketPushArray& getBucketLists() noexcept { return m_bucketLists; }
-	const BucketPushArray& getBucketLists() const noexcept { return m_bucketLists; }
-
-protected:
-	BucketPushArray m_bucketLists;
-#ifndef ASB_ENABLE_EXPANDER_DFS
-	BucketPush m_bucketLoop;
-#endif
-	union {
-		SearchGrid* a;
-		WarthogSearchGrid* w;
-	} m_grid;
-	SearchId m_sid;
-	NodeDesc m_target;
 };
 
 } // namespace asb::search
 
-#endif // ASB_SEARCH_BUCKETEXPANDER_HPP
+#endif // ASB_SEARCH_WARTHOGBUCKETEXPANDER_HPP

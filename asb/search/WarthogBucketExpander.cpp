@@ -22,11 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "BucketExpander.hpp"
+#include "WarthogBucketExpander.hpp"
 
 namespace asb::search {
 
-void BucketExpander::setup(SearchGrid& grid)
+void WarthogBucketExpander::setup(WarthogSearchGrid& grid)
 {
 	for (auto& x : m_bucketLists) {
 		x.nodes.reserve(64);
@@ -45,10 +45,10 @@ void BucketExpander::setup(SearchGrid& grid)
 	assert(m_bucketLists[4].relative_f == 14142135624ull);
 	m_bucketLists[5].relative_f = 2 * dist_r2;             // 28284271248 ( 0,  2) 11010010101110111111011101010010000
 	assert(m_bucketLists[5].relative_f == 28284271248ull);
-	m_grid.a = &grid;
+	m_grid.w = &grid;
 }
 
-void BucketExpander::setupSearch(SearchId sid, NodeDesc target)
+void WarthogBucketExpander::setupSearch(SearchId sid, NodeDesc target)
 {
 	m_sid = sid;
 	m_target = target;
@@ -57,11 +57,11 @@ void BucketExpander::setupSearch(SearchId sid, NodeDesc target)
 	}
 }
 
-bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
+bool WarthogBucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 {
-	assert(s.id < m_grid.a->getNodes().size());
+	assert(s.id < m_grid.w->getNodes().size());
 	assert(std::all_of(m_bucketLists.begin(), m_bucketLists.end(), [](const auto& bck) { return bck.nodes.empty(); }));
-	Node& snode = m_grid.a->getNodes()[s.id];
+	Node& snode = m_grid.w->getNodes()[s.id];
 	snode.sid = m_sid;
 	snode.g = 0;
 	assert(fvalue == Node::octile(snode.p - m_target.p));
@@ -91,13 +91,13 @@ bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 			store_pushes[f_hash(node.f - fvalue)].nodes.push_back(NodeId{(succ_nodeid.id << 3) | static_cast<uint8_t>(d)});
 			return succ_nodeid.id == target.id;
 		}
-	} expand{m_sid, fvalue, m_bucketLists.data(), m_grid.a->getNodes().data(), m_target, static_cast<int32_t>(m_grid.a->getWidth()), s};
+	} expand{m_sid, fvalue, m_bucketLists.data(), m_grid.w->getNodes().data(), m_target, static_cast<int32_t>(m_grid.w->getWidth()), s};
 
 	// setup node for expansion
 	uint8_t node3x3;
 	bool target_found = false;
 	{
-		uint32_t node3x3tmp = static_cast<uint32_t>(m_grid.a->getTable().region<3,3>(env::Grid::table::index_t(expand.nodeid.id - expand.row - 1)));
+		uint32_t node3x3tmp = get3x3(m_grid.w->getTable(), expand.nodeid.id);
 		node3x3 = static_cast<uint8_t>(~((node3x3tmp & 0b1111) | ((node3x3tmp >> 1) & 0b11110000)));
 	}
 
@@ -150,7 +150,7 @@ bool BucketExpander::expandStartNode(dist_type fvalue, NodeId s)
 	return false;
 }
 
-bool BucketExpander::expandNode(dist_type fvalue, const NodeId* bucket, int size)
+bool WarthogBucketExpander::expandNode(dist_type fvalue, const NodeId* bucket, int size)
 {
 #ifndef ASB_ENABLE_EXPANDER_DFS
 	return expandBucket(fvalue, bucket, size);
@@ -161,9 +161,9 @@ bool BucketExpander::expandNode(dist_type fvalue, const NodeId* bucket, int size
 }
 
 #ifndef ASB_ENABLE_EXPANDER_DFS
-bool BucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int size)
+bool WarthogBucketExpander::expandBucket(dist_type fvalue, const NodeId* bucket, int size)
 #else
-bool BucketExpander::expandBucket(dist_type fvalue)
+bool WarthogBucketExpander::expandBucket(dist_type fvalue)
 #endif
 {
 #ifndef ASB_ENABLE_EXPANDER_DFS
@@ -212,12 +212,12 @@ bool BucketExpander::expandBucket(dist_type fvalue)
 			}
 			return succ_nodeid.id == target.id;
 		}
-	} expand{m_sid, fvalue, m_bucketLists.data(), m_grid.a->getNodes().data(), m_target, static_cast<int32_t>(m_grid.a->getWidth()), NodeId{0}
+	} expand{m_sid, fvalue, m_bucketLists.data(), m_grid.w->getNodes().data(), m_target, static_cast<int32_t>(m_grid.w->getWidth()), NodeId{0}
 #ifndef NDEBUG
 		,nullptr
 #endif
 	};
-	auto& table = m_grid.a->getTable();
+	auto& table = m_grid.w->getTable();
 
 #ifndef ASB_ENABLE_EXPANDER_DFS
 	const NodeId* bucket_at = bucket + (size-1);
@@ -241,7 +241,7 @@ bool BucketExpander::expandBucket(dist_type fvalue)
 			expand.nodeid = bucket_list.nodes.back();
 			bucket_list.nodes.pop_back();
 #endif
-			assert((expand.nodeid.id >> 3) < m_grid.a->getNodes().size());
+			assert((expand.nodeid.id >> 3) < m_grid.w->getNodes().size());
 			Node& expnode = expand.grid[expand.nodeid.id >> 3];
 #ifndef NDEBUG
 			expand.d_node = &expnode;
@@ -254,7 +254,7 @@ bool BucketExpander::expandBucket(dist_type fvalue)
 				bool target_found = false;
 				{
 					NodeId expid{expand.nodeid.id >> 3};
-					uint32_t node3x3tmp = static_cast<uint32_t>(table.region<3,3>(env::Grid::table::index_t(expid.id - expand.row - 1)));
+					uint32_t node3x3tmp = get3x3(table, expid.id);
 					node3x3 = static_cast<uint8_t>(~((node3x3tmp & 0b1111) | ((node3x3tmp >> 1) & 0b11110000))) | static_cast<uint8_t>(dir_blocked_mask >> ((expand.nodeid.id & 0b111) << 3));
 					expand.nodeid = expid;
 				}
