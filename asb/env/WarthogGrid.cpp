@@ -37,7 +37,7 @@ void WarthogGrid::setup(const std::vector<bool> &bits, int width, int height)
 {
 	for (int i = 0, y = 0; y < height; ++y)
 	for (int x = 0; x < width; ++x) {
-		m_table.set_label(m_table.to_padded_id(x, y).id, bits[i++]);
+		m_table.set_label(m_table.to_padded_id(x, y), bits[i++]);
 	}
 }
 

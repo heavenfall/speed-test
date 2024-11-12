@@ -73,6 +73,7 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
 	g_bucketAs = std::make_unique<BucketAs>(width, height);
 	g_bucketAs->grid.setup(bits, width, height);
 	g_bucketAs->search.setup(g_bucketAs->grid);
+	g_bucketAs->grid.getTable().print(std::cerr);
 	return g_bucketAs.get();
 }
 

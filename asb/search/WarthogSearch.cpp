@@ -47,8 +47,8 @@ void WarthogSearch::search(geo::Point s, geo::Point t)
 	m_path.clear();
 	if (s == t)
 		return;
-	NodeDesc start{0, env::Grid::pad(s)}; start.id = getNodeId(start.p);
-	NodeDesc target{0, env::Grid::pad(t)}; target.id = getNodeId(target.p);
+	NodeDesc start{0, env::WarthogGrid::pad(s)}; start.id = getNodeId(start.p);
+	NodeDesc target{0, env::WarthogGrid::pad(t)}; target.id = getNodeId(target.p);
 	m_queue.setupSearch(m_sid);
 	m_expander.setupSearch(m_sid, target);
 	// node s
@@ -80,7 +80,7 @@ void WarthogSearch::search(geo::Point s, geo::Point t)
 		while (true) {
 			Node& node = nodes[point.id];
 			assert(node.sid.id == m_sid.id);
-			m_path.push_back(env::Grid::unpad(node.p));
+			m_path.push_back(env::WarthogGrid::unpad(node.p));
 #ifndef NDEBUG
 			assert(!debugNoLoops.contains(point.id));
 			debugNoLoops.insert(point.id);

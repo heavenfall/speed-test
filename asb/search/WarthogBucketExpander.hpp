@@ -57,8 +57,8 @@ public:
 	static uint32_t get3x3(WarthogSearchGrid::table& T, uint32_t p)
 	{
 		uint8_t r[3];
-		T.get_neighbours(p, r);
-		return uint32_t{r[0]} | (uint32_t{r[1]} << 3) | (uint32_t{r[2]} << 6);
+		T.get_neighbours(warthog::pad_id{p}, r);
+		return (uint32_t{r[0]} & 0b111) | ((uint32_t{r[1]} & 0b111) << 3) | ((uint32_t{r[2]} & 0b111) << 6);
 	}
 };
 

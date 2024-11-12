@@ -57,7 +57,9 @@ public:
 	uint32_t getNodeId(geo::Point p) const noexcept
 	{
 		assert(m_grid != nullptr && static_cast<uint32_t>(p.x) < m_grid->getTable().width() && static_cast<uint32_t>(p.y) < m_grid->getTable().height());
-		return static_cast<uint32_t>(p.y) * m_grid->getTable().width() + static_cast<uint32_t>(p.x);
+		uint32_t r = static_cast<uint32_t>(p.y) * m_grid->getWidth() + static_cast<uint32_t>(p.x);
+		assert(r < m_grid->getNodes().size() && m_grid->getNodes()[r].p == p);
+		return r;
 	}
 
 protected:
